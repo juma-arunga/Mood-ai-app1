@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mood AI</title>
+
+    <!-- 
+        This links your external CSS file.
+        Flask automatically looks for CSS inside the "static" folder.
+    -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- 
+    Main container for the app UI
+-->
+<div class="container">
+
+    <!-- App title -->
+    <h1>🧠 Mood AI</h1>
+
+    <!-- Instruction text -->
+    <p>Type how you feel:</p>
+
+    <!-- 
+        Text input where the user types their feelings
+        id="textInput" is used by JavaScript to read the value
+    -->
+    <input 
+        type="text" 
+        id="textInput" 
+        placeholder="I feel stressed and tired"
+    >
+
+    <!-- 
+        Button that calls the JavaScript function predictMood()
+        when clicked
+    -->
+    <button onclick="predictMood()">Predict Mood</button>
+
+    <!-- 
+        This div displays the prediction result
+    -->
+    <div class="result" id="result"></div>
+
+</div>
+
+<!-- ========================= -->
+<!-- JavaScript starts here -->
+<!-- ========================= -->
+<script>
+
+    /*
+        This function runs when the user clicks the button.
+        "async" allows us to wait for the server response.
+    */
+    async function predictMood() {
+
+        // Get the text typed by the user
+        const input = document.getElementById("textInput").value;
+
+        // Get the div where results will be shown
+        const resultDiv = document.getElementById("result");
+
+        // If input is empty, show warning and stop
+        if (!input) {
+            resultDiv.innerText = "⚠️ Please type something";
+            resultDiv.style.color = "red";
+            return; // stop function
+        }
+
+        // Show loading message while waiting for AI
+        resultDiv.innerText = "⏳ Predicting...";
+        resultDiv.style.color = "black";
+
+        try {
+            /*
+                Send a POST request to the Flask API (/predict)
+                with JSON data: { text: user_input }
+            */
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    text: input
+                })
+            });
+
+            // Convert server response from JSON to JavaScript object
+            const data = await response.json();
+
+            // If the server returned a mood
+            if (data.mood) {
+                resultDiv.innerText = "Mood: " + data.mood;
+
+                // Change text color based on mood
+                colorMood(data.mood);
+            } 
+            // If something unexpected happened
+            else {
+                resultDiv.innerText = "❌ Error predicting mood";
+                resultDiv.style.color = "red";
+            }
+
+        } 
+        // If server is down or request fails
+        catch (error) {
+            resultDiv.innerText = "❌ Server error";
+            resultDiv.style.color = "red";
+        }
+    }
+
+    /*
+        This function changes the text color
+        depending on the predicted mood
+    */
+    function colorMood(mood) {
+
+        const resultDiv = document.getElementById("result");
+
+        // Mood-to-color mapping
+        const colors = {
+            happy: "green",
+            sad: "blue",
+            angry: "red",
+            stressed: "orange",
+            calm: "purple"
+        };
+
+        // Apply color if mood exists, else use black
+        resultDiv.style.color = colors[mood] || "black";
+    }
+
+</script>
+
+</body>
+</html>
